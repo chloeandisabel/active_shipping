@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 require 'cgi'
 
 module ActiveMerchant
   module Shipping
 
-    class USPSReturns < USPS
+    class USPSReturns < Carrier
 
       self.retry_safe = true
 
@@ -33,9 +32,8 @@ module ActiveMerchant
         []
       end
 
-      def external_return_label_request(label)
-        response = commit(:external_return_label_request, URI.encode(label.to_xml.to_s), false)
-        puts response.to_s
+      def external_return_label_request(label, options = {})
+        response = commit(:external_return_label_request, URI.encode(label.to_xml.to_s), (options[:test] || false))
         parse_external_return_label_response(response)
       end
 
@@ -45,7 +43,7 @@ module ActiveMerchant
         tracking_number, postal_routing, return_label, message = '', '', '', '', ''
         xml = REXML::Document.new(response)
         error = external_return_label_errors(xml)
-        tracking_number = xml.elements.collect('*/TrackingNumber') { |e| e }.first.text
+        # tracking_number = xml.elements.collect('*/TrackingNumber') { |e| e }.first.text
         if error.is_a?(Hash) && error.size > 0
           message << "#{error[:error][:code]}: #{error[:error][:message]}"
         else
@@ -87,6 +85,10 @@ module ActiveMerchant
         else
           {}
         end
+      end
+
+      def commit(action, request, test = false)
+        ssl_get(request_url(action, request, test))
       end
 
       def request_url(action, request, test)
