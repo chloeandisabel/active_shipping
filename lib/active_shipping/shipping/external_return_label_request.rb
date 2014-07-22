@@ -304,10 +304,14 @@ module ActiveMerchant #:nodoc:
       # Apt or suite number
       def customer_address2=(v)
         @customer_address2 = nil
-        if (v = sanitize(v)) && (1..32).include?(v.length)
-          @customer_address2 = v
+        if (v = sanitize(v)) && (0..32).include?(v.length)
+          if v.length == 0
+            @customer_address2 = nil
+          else
+            @customer_address2 = v
+          end
         else
-          raise USPSValidationError, "#{__method__} must be a String between 1 and 32 chars in length, found value '#{v}'."
+          raise USPSValidationError, "#{__method__} must be a String fewere than 32 chars in length, found value '#{v}'."
         end
       end
 
