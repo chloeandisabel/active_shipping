@@ -3,6 +3,8 @@ module ActiveMerchant #:nodoc:
 
     class ExternalReturnLabelRequest
 
+      CAP_STRING_LEN = 100
+
       USPS_EMAIL_REGEX = /^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/
 
       LABEL_FORMAT = {
@@ -17,7 +19,7 @@ module ActiveMerchant #:nodoc:
 
       CALL_CENTER_OR_SELF_SERVICE = ['CallCenter', 'Customer']
 
-      LABEL_DEFINITION = ['4X6', 'Zebra-4X6', '4x4', '3x6']
+      LABEL_DEFINITION = ['4X6', 'Zebra-4X6', '4X4', '3X6']
 
       IMAGE_TYPE = ['PDF', 'TIF']
 
@@ -62,16 +64,21 @@ module ActiveMerchant #:nodoc:
         self.new(options)
       end
 
-      # def to_bool
-      #  return true if self == true || self =~ (/(true|t|yes|y|1)$/i)
-      #  return false if self == false || self.blank? || self =~ (/(false|f|no|n|0)$/i)
-      #  raise ArgumentError.new("invalid value for Boolean: \"#{self}\"")
-      # end
+      def to_bool(v, default = false)
+        v = v.to_s
+        if v =~ (/(true|yes|1)$/i)
+          true
+        elsif v =~ (/(false|no|0)$/i)
+          false
+        else
+          default
+        end
+      end
 
       def sanitize(v)
         if v.is_a?(String)
           v.strip!
-          v
+          v[0..CAP_STRING_LEN - 1]
         else
           nil
         end
@@ -126,15 +133,16 @@ module ActiveMerchant #:nodoc:
       # If true, the address will be validated against WebTools.
       # If false, the system will bypass the validation
       def address_validation=(v)
-        @address_validation = !!v
+        @address_validation = to_bool(v, true)
       end
 
       def image_type=(v)
         @image_type = nil
+        v = v.to_s.upcase
         if IMAGE_TYPE.include?(v)
           @image_type = v
         else
-          raise USPSValidationError, "#{v} is not a valid value in #{__method__}, try #{IMAGE_TYPE.join(',')}"
+          raise USPSValidationError, "'#{v}' is not a valid value in #{__method__}, try #{IMAGE_TYPE.join(',')}"
         end
       end
 
@@ -143,7 +151,7 @@ module ActiveMerchant #:nodoc:
         if CALL_CENTER_OR_SELF_SERVICE.include?(v)
           @call_center_or_self_service = v
         else
-          raise USPSValidationError, "#{v} is not valid value in #{__method__}, try any one of the following: #{CALL_CENTER_OR_SELF_SERVICE.join(',')}"
+          raise USPSValidationError, "'#{v}' is not valid value in #{__method__}, try any one of the following: #{CALL_CENTER_OR_SELF_SERVICE.join(',')}"
         end
       end
 
@@ -152,7 +160,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.size <= 15
           @packaging_information2 = v
         else
-          raise USPSValidationError, "#{v} must be a string no longer than 15 chars in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String no longer than 15 chars, found value '#{v}'."
         end
       end
 
@@ -162,16 +170,18 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.size <= 15
           @packaging_information = v
         else
-          raise USPSValidationError, "#{v} must be a string no longer than 15 chars in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String no longer than 15 chars, found value '#{v}'."
         end
       end
 
-      # Override address if more address information is needed
-      # or system cannot find address. If the address_override_notification
-      # value is true then any address error being passed from
-      # WebTools would be bypassed and a successful response will be sent
+      # Override address if more address information
+      # is needed or system cannot find address. If
+      # the address_override_notification value is
+      # true then any address error being passed from
+      # WebTools would be bypassed and a successful
+      # response will be sent
       def address_override_notification=(v)
-        @address_override_notification = !!v
+        @address_validation = to_bool(v)
       end
 
       # Insured amount of package
@@ -180,7 +190,7 @@ module ActiveMerchant #:nodoc:
         if (1..200).include?(v.to_f)
           @insurance_amount = v
         else
-          raise USPSValidationError, "#{v} must be a numerical value between 1 and 200 in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a numerical value between 1 and 200, found value '#{v}'."
         end
       end
 
@@ -189,7 +199,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.length <= 255
           @merchandise_description = v
         else
-          raise USPSValidationError, "#{v} must be a string fewer than 256 chars in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a string fewer than 256 chars, found value '#{v}'."
         end
       end
 
@@ -230,7 +240,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.length <= 38
           @attention = v
         else
-          raise USPSValidationError, "#{v} must be a string no more than 38 chars in length #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a string no more than 38 chars in length, found value '#{v}'."
         end
       end
 
@@ -239,7 +249,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.length <= 38
           @company_name = v
         else
-          raise USPSValidationError, "#{v} must be a string no more than 38 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String no more than 38 chars in length, found value '#{v}'."
         end
       end
 
@@ -248,7 +258,7 @@ module ActiveMerchant #:nodoc:
         if v.to_i > 0
           @merchant_account_id = v
         else
-          raise USPSValidationError, "#{v} must be a valid positive integer in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a valid positive integer, found value '#{v}'."
         end
       end
 
@@ -257,7 +267,7 @@ module ActiveMerchant #:nodoc:
         if v =~ /^\d{6,9}$/
           @mid = v
         else
-          raise USPSValidationError, "#{v} must be a valid integer between 6 and 9 digits in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a valid integer between 6 and 9 digits in length, found value '#{v}'."
         end
       end
 
@@ -267,7 +277,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.length <= 32
           @customer_urbanization = v
         else
-          raise USPSValidationError, "#{v} must be a string no more than 32 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String no more than 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -277,7 +287,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && (1..32).include?(v.length)
           @customer_name = v
         else
-          raise USPSValidationError, "#{v} must be a string between 1 and 32 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String between 1 and 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -287,7 +297,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && (1..32).include?(v.length)
           @customer_address1 = v
         else
-          raise USPSValidationError, "#{v} must be a string between 1 and 32 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String between 1 and 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -297,7 +307,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && (1..32).include?(v.length)
           @customer_address2 = v
         else
-          raise USPSValidationError, "#{v} must be a string between 1 and 32 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String between 1 and 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -307,7 +317,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && (1..32).include?(v.length)
           @customer_city = v
         else
-          raise USPSValidationError, "#{v} must be a string between 1 and 32 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String between 1 and 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -317,7 +327,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v =~ /^[a-zA-Z]{2}$/
           @customer_state = v
         else
-          raise USPSValidationError, "#{v} must be a string 2 chars in length in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a String 2 chars in length, found value '#{v}'."
         end
       end
 
@@ -327,7 +337,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v =~ /^\d{5}$/
           @customer_zipcode = v
         else
-          raise USPSValidationError, "#{v} must be a 5 digit number in #{__method__}"
+          raise USPSValidationError, "#{__method__} must be a 5 digit number, found value '#{v}'."
         end
       end
 
@@ -343,7 +353,6 @@ module ActiveMerchant #:nodoc:
         raise USPSMissingRequiredTagError.new("ServiceTypeCode", "service_type_code") unless service_type_code
         raise USPSMissingRequiredTagError.new("MerchantAccountID", "merchant_account_id") unless merchant_account_id
         raise USPSMissingRequiredTagError.new("CallCenterOrSelfService", "call_center_or_self_service") unless call_center_or_self_service
-        raise USPSMissingRequiredTagError.new("AddressOverrideNotification", "address_override_notification") unless address_override_notification
       end
 
       def to_xml
@@ -374,13 +383,12 @@ module ActiveMerchant #:nodoc:
           root_node << XmlNode.new('CompanyName', company_name) if company_name
           root_node << XmlNode.new('Attention', attention) if attention
 
-          root_node << XmlNode.new('AddressOverrideNotification', address_override_notification)
           root_node << XmlNode.new('CallCenterOrSelfService', call_center_or_self_service)
 
           root_node << XmlNode.new('MerchandiseDescription', merchandise_description) if merchandise_description
           root_node << XmlNode.new('InsuranceAmount', insurance_amount) if insurance_amount
 
-          root_node << XmlNode.new('AddressOverrideNotification', address_override_notification) if address_override_notification
+          root_node << XmlNode.new('AddressOverrideNotification', !!address_override_notification)
 
           root_node << XmlNode.new('PackageInformation', packaging_information) if packaging_information
           root_node << XmlNode.new('PackageInformation2', packaging_information2) if packaging_information2
@@ -388,7 +396,7 @@ module ActiveMerchant #:nodoc:
           root_node << XmlNode.new('CallCenterOrSelfService', call_center_or_self_service)
 
           root_node << XmlNode.new('ImageType', image_type) if image_type
-          root_node << XmlNode.new('AddressValidation', address_validation) if address_validation
+          root_node << XmlNode.new('AddressValidation', !!address_validation)
 
           root_node
         end

@@ -64,7 +64,7 @@ module ActiveMerchant
       end
 
       def external_return_label_errors(document)
-        if node = document.elements['*/errors/']
+        if node = document.respond_to?(:elements) && document.elements['*/errors/']
           if node.elements['ExternalReturnLabelError']
             if message = node.get_text('ExternalReturnLabelError/InternalErrorDescription')
               if code = node.get_text('ExternalReturnLabelError/InternalErrorNumber')
