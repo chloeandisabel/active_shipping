@@ -199,7 +199,7 @@ module ActiveMerchant #:nodoc:
         if (v = sanitize(v)) && v.length <= 255
           @merchandise_description = v
         else
-          raise USPSValidationError, "#{__method__} must be a string fewer than 256 chars, found value '#{v}'."
+          raise USPSValidationError, "#{__method__} must be a string less than 256 chars, found value '#{v}'."
         end
       end
 
@@ -311,7 +311,7 @@ module ActiveMerchant #:nodoc:
             @customer_address2 = v
           end
         else
-          raise USPSValidationError, "#{__method__} must be a String fewere than 32 chars in length, found value '#{v}'."
+          raise USPSValidationError, "#{__method__} must be a String less than 32 chars in length, found value '#{v}'."
         end
       end
 
@@ -338,8 +338,11 @@ module ActiveMerchant #:nodoc:
       # Zipcode of customer returning the package
       def customer_zipcode=(v)
         @customer_zipcode = nil
-        if (v = sanitize(v)) && v =~ /^\d{5}$/
-          @customer_zipcode = v
+        if (v = sanitize(v))
+          v = v[0..4]
+          if v =~ /^\d{5}$/
+            @customer_zipcode = v
+          end
         else
           raise USPSValidationError, "#{__method__} must be a 5 digit number, found value '#{v}'."
         end
