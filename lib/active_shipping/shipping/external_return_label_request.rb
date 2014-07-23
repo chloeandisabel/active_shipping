@@ -366,7 +366,7 @@ module ActiveMerchant #:nodoc:
         xml_request = XmlNode.new('ExternalReturnLabelRequest') do |root_node|
           root_node << XmlNode.new('CustomerName', customer_name)
           root_node << XmlNode.new('CustomerAddress1', customer_address1)
-          root_node << XmlNode.new('CustomerAddress2', customer_address2)
+          root_node << XmlNode.new('CustomerAddress2', customer_address2) if customer_address2
           root_node << XmlNode.new('CustomerCity', customer_city)
           root_node << XmlNode.new('CustomerState', customer_state)
           root_node << XmlNode.new('CustomerZipCode', customer_zipcode) if customer_zipcode
